@@ -1,76 +1,23 @@
-SELECT
-    u.id AS customer_id,
-    u.first_name,
-    u.last_name,
-    -- Sum of savings balances
-    COALESCE((
-        SELECT SUM(sa.new_balance)
-        FROM savings_savingsaccount sa
-        WHERE sa.owner_id = u.id AND sa.new_balance > 0
-    ), 0) AS total_savings_balance,
-    -- Sum of investment amounts
-    COALESCE((
-        SELECT SUM(pp.amount)
-        FROM plans_plan pp
-        WHERE pp.owner_id = u.id AND pp.amount > 0
-    ), 0) AS total_investment_amount,
-    -- Total deposits
-    COALESCE((
-        SELECT SUM(sa.new_balance)
-        FROM savings_savingsaccount sa
-        WHERE sa.owner_id = u.id AND sa.new_balance > 0
-    ), 0) + COALESCE((
-        SELECT SUM(pp.amount)
-        FROM plans_plan pp
-        WHERE pp.owner_id = u.id AND pp.amount > 0
-    ), 0) AS total_deposits
-FROM users_customuser u
-WHERE EXISTS (
-    SELECT 1 FROM savings_savingsaccount sa WHERE sa.owner_id = u.id AND sa.new_balance > 0
-)
-AND EXISTS (
-    SELECT 1 FROM plans_plan pp WHERE pp.owner_id = u.id AND pp.amount > 0
-)
-ORDER BY total_deposits DESC
-LIMIT 1000;
-
-
-SELECT
-    u.id AS customer_id,
-    u.first_name,
-    u.last_name,
-    COALESCE(sa_sums.total_savings_balance, 0) AS total_savings_balance,
-    COALESCE(pp_sums.total_investment_amount, 0) AS total_investment_amount,
-    COALESCE(sa_sums.total_savings_balance, 0) + COALESCE(pp_sums.total_investment_amount, 0) AS total_deposits
-FROM
-    users_customuser u
-    LEFT JOIN (
-        SELECT owner_id, SUM(new_balance) AS total_savings_balance
-        FROM savings_savingsaccount
-        WHERE new_balance > 0
-        GROUP BY owner_id
-    ) sa_sums ON sa_sums.owner_id = u.id
-    LEFT JOIN (
-        SELECT owner_id, SUM(amount) AS total_investment_amount
-        FROM plans_plan
-        WHERE amount > 0
-        GROUP BY owner_id
-    ) pp_sums ON pp_sums.owner_id = u.id
-WHERE
-    sa_sums.total_savings_balance IS NOT NULL
-    AND pp_sums.total_investment_amount IS NOT NULL
-ORDER BY
-    total_deposits DESC
-LIMIT 1000;
-
+-- Retrieve the top 1000 customers by total deposits (savings + investments)
+-- Only include customers who have both a savings and an investment record with positive balances
 
 SELECT 
     u.id AS customer_id,
+    -- Concatenate first and last names for full name display
     CONCAT(u.first_name, ' ', u.last_name) AS name,
+    
+    -- Total savings balance (only positive balances)
     COALESCE(sa_sums.total_savings_balance, 0) AS total_savings_balance,
+
+    -- Total investment amount (only positive investments)
     COALESCE(pp_sums.total_investment_amount, 0) AS total_investment_amount,
+
+    -- Total deposits (savings + investments)
     COALESCE(sa_sums.total_savings_balance, 0) + COALESCE(pp_sums.total_investment_amount, 0) AS total_deposits
+
 FROM users_customuser u
+
+-- Subquery: Aggregate savings per user where balance > 0
 LEFT JOIN (
     SELECT 
         owner_id, 
@@ -79,6 +26,8 @@ LEFT JOIN (
     WHERE new_balance > 0
     GROUP BY owner_id
 ) sa_sums ON sa_sums.owner_id = u.id
+
+-- Subquery: Aggregate investments per user where amount > 0
 LEFT JOIN (
     SELECT 
         owner_id, 
@@ -87,7 +36,12 @@ LEFT JOIN (
     WHERE amount > 0
     GROUP BY owner_id
 ) pp_sums ON pp_sums.owner_id = u.id
+
+-- Filter: Include only users who have BOTH savings and investments
 WHERE sa_sums.total_savings_balance IS NOT NULL 
   AND pp_sums.total_investment_amount IS NOT NULL
+
+-- Order by highest total deposits
 ORDER BY total_deposits DESC
-LIMIT 1000;
+
+
