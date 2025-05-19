@@ -16,8 +16,8 @@ This repository contains SQL solutions to the SQL Proficiency Assessment designe
 
 ## Challenges Encountered for Q1
 
-- **Currency Handling**: Amounts were stored in kobo so therefore it required conversion to naira for accurate financial reporting. 
-Also distinguishing between a savings plan and an investment plan wasn't immediately obvious.  
+- **Currency Handling**: Amounts were stored in kobo therefore, it required conversion to naira for accurate financial reporting. 
+Also, distinguishing between a savings plan and an investment plan was not immediately obvious.  
 **Resolution:** By checking `is_regular_savings = 1` for savings and `is_a_fund = 1` for investment, I ensured accurate filtering. Also, aggregating deposits correctly in Kobo required careful type conversion to Naira for readability. Divided all `confirmed_amount` values by 100 to convert kobo to naira.
 
 ### Question 2: Transaction Frequency Analysis
@@ -37,8 +37,8 @@ Also distinguishing between a savings plan and an investment plan wasn't immedia
 ## Challenges Encountered for Q2 
 **Inconsistent Date Ranges**: Differences in transaction date formats and the need to align the calculation of months for accurate averaging.
 **Resolution** : Used SQL date functions like `DATEDIFF` and `TIMESTAMPDIFF(MONTH, ..., CURRENT_DATE)` to maintain consistency.
-**Challenge:** Accurately deriving monthly averages from transaction dates posed a logic hurdle.  
-**Resolution:** I extracted month-level grouping from the transaction timestamp and used COUNT + DISTINCT month combinations to derive monthly transaction frequency, then wrapped the logic into a CASE WHEN to categorize users intuitively.
+**Challenge:** Accurately deriving monthly averages from transaction dates was quite tasking.  
+**Resolution:** I extracted month-level grouping from the transaction timestamp and used COUNT(DISTINCT) month combinations to derive monthly transaction frequency, then embedded it into a CASE WHEN function to be able to categorize users effectively.
   
 ### Question 3: Account Inactivity Alert
 **Task**:  Find all active accounts (savings or investments) with no transactions in the last 1 year (365 days) . 
@@ -52,7 +52,7 @@ Also distinguishing between a savings plan and an investment plan wasn't immedia
 -> Calculated days since last transaction using `DATE_PART`.
 
 ## Challenges Encountered for Q3
-**Challenge:** Ensuring I captured "active" accounts without transactions in exactly the last 365 days — not all-time inactivity.  
+**Challenge:** Ensuring I captured "active" accounts without transactions in exactly the last 365 days (not all-time inactivity).  
 **Resolution:** I compared each account’s last transaction date against `CURRENT_DATE - INTERVAL '365 days'` and combined both savings and investment records using UNION ALL, preserving type labels and last activity dates.
 
 
@@ -64,15 +64,15 @@ Estimated CLV (Assume: CLV = (total_transactions / tenure) * 12 * avg_profit_per
 Order by estimated CLV from highest to lowest
 **Objective**: Estimate CLV using tenure and transaction volume.
 **Approach**:
-Calculated account tenure by calculating the number of months since signup.
-Aggregated total confirmed transactions for each customer.
-Applied the formula: `CLV = (total_transactions / tenure) * 12 * avg_profit_per_transaction`.
-Sorted customers by estimated CLV in descending order.
-Used 0.1% profit assumption
+-> Calculated account tenure by calculating the number of months since signup.
+-> Aggregated total confirmed transactions for each customer.
+-> Applied the formula: `CLV = (total_transactions / tenure) * 12 * avg_profit_per_transaction`.
+-> Sorted customers by estimated CLV in descending order.
+-> Used 0.1% profit assumption
 
 ## Challenges Encountered for Q4
 **Challenge:** Modeling the CLV with minimal assumptions and computing tenure in months with accuracy.  
-**Resolution:** Used date_diff in months from signup to current date for tenure, totalled confirmed deposits as a proxy for transactions, and applied the simplified CLV formula. Finally, formatted profit correctly after converting from Kobo to Naira.
+**Resolution:** Used date_diff in months from signup to current date for tenure, added confirmed deposits as a substitute for transactions, and applied the simplified CLV formula. Finally, formatted profit correctly after converting from Kobo to Naira.
 
 
 ## Challenges Encountered and Resolutions
@@ -82,22 +82,16 @@ Used 0.1% profit assumption
 
 **Challenge**: Handling cases where customers might have multiple plans of the same type.
 **Resolution**:  
-Used conditional aggregation (`SUM(CASE WHEN...)`) and `GROUP BY` on `owner_id` to count only valid plan types per customer. It’s like counting different toppings on your pizza order—you don’t want the same topping listed twice just because it’s on multiple slices.
+Used conditional aggregation (`SUM(CASE WHEN...)`) and `GROUP BY` on `owner_id` to count only valid plan types per customer. 
 
- 
+
 **Challenge**: Avoiding division by zero for new customers.
 **Resolution**:  
-Used `NULLIF` and filtered out customers with less than a month of tenure to ensure accurate monthly averages. It’s like calculating someone’s monthly expenses—you skip the estimate if they moved in yesterday.
-
-
-
-**Challenge**: Distinguishing between truly inactive vs new accounts.
-**Resolution**:  
-Added logic to check account age and filter out recently opened accounts. It's like checking in on a friend—you don’t panic if they just moved to a new city last week, but silence from an old friend may be worth a ping.
+Used `NULLIF` and filtered out customers with less than a month of tenure to ensure accurate monthly averages. 
 
 
 **Challenge**: Handling edge cases with very new customers.
-**Resolution**: Used `GREATEST(tenure_months, 1)` to avoid division by zero or unrealistic CLV values. It’s like adjusting your GPA—it wouldn't be fair to call someone a genius after one perfect test.
+**Resolution**: Used `GREATEST(tenure_months, 1)` to avoid division by zero or unrealistic CLV values.
 
 
 
